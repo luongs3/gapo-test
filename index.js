@@ -38,7 +38,7 @@ program
       } catch (error) {
         console.error(error);
       }
-      await delay(200)
+      // await delay(200)
     }
 
     exportFile(wordMap)
@@ -48,14 +48,17 @@ program.parse(process.argv)
 
 
 function updateWordMap($, wordMap) {
+  console.log('text: ', $('body').text());
   let words = $('body').text().replace(/[.,\-0-9\(\)\/\"\']/g, '')
     .toLowerCase()
     .split(/\s/)
   words.forEach(function (w) {
-    if (!wordMap[w]) {
-      wordMap[w] = 0
+    if (w !== '') {
+      if (!wordMap[w]) {
+        wordMap[w] = 0
+      }
+      wordMap[w] += 1
     }
-    wordMap[w] += 1
   })
 }
 
