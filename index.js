@@ -1,17 +1,13 @@
 #!/usr/bin/env node
 const cheerio = require('cheerio')
-const request = require('request-promise')
 const {program} = require('commander');
 const axios = require('axios');
 const fs = require('fs');
-const {pseudoRandomBytes} = require('crypto');
 
 program
   .arguments('<url> <maxDepth>')
   .action(async (url, maxDepth) => {
-    const wordMap = {}
-    const visited = new Set()
-    const queue = [{ url, depth: 0 }]
+    const wordMap = {}, visited = new Set(), queue = [{ url, depth: 0 }]
     let counter = 0
 
     console.log('Crawling: ', url);
@@ -20,25 +16,20 @@ program
       if (visited.has(url)) continue
       visited.add(url)
       console.log(`${counter}-${depth}: ${url}`);
-      counter++
       if (depth > Number(maxDepth)) continue
 
       try {
         const response = await axios.get(url)
         const $ = cheerio.load(response.data)
         updateWordMap($, wordMap)
+        counter++
+
         if (depth < maxDepth) {
-          $('a').each((i, link) => {
-            const href = $(link).attr('href');
-            if (href && href.startsWith('http') && !visited.has(href)) {
-              queue.push({ url: href, depth: depth + 1 })
-            }
-          })
+          addSubLink($, queue, visited, depth)
         }
       } catch (error) {
         console.error(error);
       }
-      // await delay(200)
     }
 
     exportFile(wordMap)
@@ -46,9 +37,7 @@ program
   })
 program.parse(process.argv)
 
-
 function updateWordMap($, wordMap) {
-  console.log('text: ', $('body').text());
   let words = $('body').text().replace(/[.,\-0-9\(\)\/\"\']/g, '')
     .toLowerCase()
     .split(/\s/)
@@ -76,6 +65,11 @@ function exportFile(wordMap) {
   })
 }
 
-function delay(time) {
-  return new Promise(resolve => setTimeout(resolve, time));
+function addSubLink($, queue, visited, depth) {
+  $('a').each((i, link) => {
+    const href = $(link).attr('href');
+    if (href && href.startsWith('http') && !visited.has(href)) {
+      queue.push({ url: href, depth: depth + 1 })
+    }
+  })
 }
